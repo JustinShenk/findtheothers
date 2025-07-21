@@ -191,7 +191,7 @@ export async function GET(request: Request) {
     console.error('Error in automatic cause discovery:', error);
     return NextResponse.json({ 
       error: 'Failed to discover causes automatically',
-      details: error.message 
+      details: (error as any).message || 'Unknown error'
     }, { status: 500 });
   }
 }
