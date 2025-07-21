@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
+import { kmeans } from 'ml-kmeans';
 
 const prisma = new PrismaClient();
 
@@ -7,8 +8,15 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const causeFilter = searchParams.get('causes')?.split(',').filter(Boolean) || [];
   const limit = parseInt(searchParams.get('limit') || '1000');
+  const useAutoDiscovery = searchParams.get('auto') !== 'false'; // Default to auto-discovery
 
   try {
+    // Use automatic cause discovery by default
+    if (useAutoDiscovery && causeFilter.length === 0) {
+      return await getAutoDiscoveredVisualization(limit);
+    }
+    
+    // Fallback to original predefined causes logic for specific filters
     // First, let's get all causes if none specified, or filter by name
     let causesData;
     
@@ -205,4 +213,200 @@ export async function GET(request: Request) {
     console.error('Error fetching visualization data:', error);
     return NextResponse.json({ error: 'Failed to fetch data' }, { status: 500 });
   }
+}
+
+/**
+ * Auto-discovered visualization using clustering
+ */
+async function getAutoDiscoveredVisualization(limit: number) {
+  console.log('🔍 Using automatic cause discovery for visualization...');
+  
+  // Get initiatives with embeddings
+  const initiatives = await prisma.initiative.findMany({
+    where: {
+      embeddingJson: { not: null }
+    },
+    take: Math.min(limit, 100), // Cap for performance
+    orderBy: { stars: 'desc' },
+  });
+
+  if (initiatives.length < 6) {
+    console.warn('Not enough projects for auto-discovery, using fallback');
+    return NextResponse.json({
+      nodes: [],
+      edges: [],
+      metrics: { totalNodes: 0, totalEdges: 0, discoveredCauses: 0 },
+      message: 'Not enough data for automatic cause discovery'
+    });
+  }
+
+  // Extract project data for clustering
+  const projectData = initiatives.map(init => ({
+    id: init.id,
+    name: init.name,
+    description: init.description,
+    stars: init.stars,
+    forks: init.forks,
+    languages: JSON.parse(init.languagesJson || '[]'),
+    topics: JSON.parse(init.topicsJson || '[]'),
+    tags: JSON.parse(init.tagsJson || '[]'),
+    embedding: JSON.parse(init.embeddingJson || '[]'),
+  })).filter(p => p.embedding.length > 0);
+
+  // Perform clustering
+  const clusters = Math.min(6, Math.floor(projectData.length / 5));
+  const embeddings = projectData.map(p => p.embedding.slice(0, 50));
+  const clusterResult = kmeans(embeddings, clusters, {
+    initialization: 'kmeans++',
+    maxIterations: 50,
+  });
+
+  // Group projects by cluster and create visualization
+  const clusteredProjects = new Map<number, typeof projectData>();
+  projectData.forEach((project, index) => {
+    const clusterId = clusterResult.clusters[index];
+    if (!clusteredProjects.has(clusterId)) {
+      clusteredProjects.set(clusterId, []);
+    }
+    clusteredProjects.get(clusterId)!.push(project);
+  });
+
+  const nodes: any[] = [];
+  const edges: any[] = [];
+  const colors = ['#ef4444', '#f97316', '#22c55e', '#10b981', '#3b82f6', '#6366f1', '#8b5cf6', '#d946ef'];
+
+  // Create discovered cause nodes
+  Array.from(clusteredProjects.entries()).forEach(([clusterId, clusterProjects], clusterIndex) => {
+    if (clusterProjects.length < 2) return;
+    
+    const causeName = generateCauseName(clusterProjects);
+    const color = colors[clusterIndex % colors.length];
+    
+    // Add discovered cause node  
+    const causeNode = {
+      id: `discovered-cause-${clusterId}`,
+      type: 'discovered-cause',
+      label: causeName,
+      x: (clusterIndex * 120) - 300,
+      y: 0,
+      size: Math.min(35, 15 + clusterProjects.length * 1.5),
+      color,
+      visible: true,
+      highlighted: false,
+      opacity: 1,
+      data: {
+        clusterId,
+        projectCount: clusterProjects.length,
+        avgStars: Math.round(clusterProjects.reduce((sum, p) => sum + p.stars, 0) / clusterProjects.length),
+        topTopics: getTopItems(clusterProjects.flatMap(p => p.topics)),
+        isDiscovered: true,
+      },
+    };
+    nodes.push(causeNode);
+
+    // Add project nodes
+    clusterProjects.forEach((project, projectIndex) => {
+      const angle = (projectIndex / clusterProjects.length) * 2 * Math.PI;
+      const radius = 60 + Math.random() * 30;
+      
+      const projectNode = {
+        id: `init-${project.id}`,
+        type: 'initiative',
+        label: project.name,
+        x: causeNode.x + Math.cos(angle) * radius,
+        y: causeNode.y + Math.sin(angle) * radius,
+        size: Math.min(12, 4 + Math.log10(project.stars + 1) * 1.8),
+        color,
+        visible: true,
+        highlighted: false,
+        opacity: 0.8,
+        data: {
+          initiativeId: project.id,
+          stars: project.stars,
+          forks: project.forks,
+          description: project.description,
+          languages: project.languages,
+          topics: project.topics,
+        },
+      };
+      nodes.push(projectNode);
+
+      // Edge from cause to project
+      edges.push({
+        id: `edge-${causeNode.id}-${projectNode.id}`,
+        source: causeNode.id,
+        target: projectNode.id,
+        type: 'belongs-to',
+        weight: 0.8,
+        visible: true,
+        color,
+      });
+    });
+  });
+
+  const metrics = {
+    totalNodes: nodes.length,
+    totalEdges: edges.length,
+    causes: Array.from(clusteredProjects.keys()).length,
+    initiatives: projectData.length,
+    contributors: 0, // No contributors in auto-discovery yet
+    discoveredCauses: Array.from(clusteredProjects.keys()).length,
+    clusteringMethod: 'auto-embedding-kmeans',
+  };
+
+  console.log(`✅ Auto-discovered ${clusteredProjects.size} causes from ${projectData.length} projects`);
+
+  return NextResponse.json({
+    nodes,
+    edges, 
+    metrics,
+  });
+}
+
+/**
+ * Generate meaningful cause name from cluster projects
+ */
+function generateCauseName(projects: any[]): string {
+  const allTerms = projects.flatMap(p => [...p.topics, ...p.tags]);
+  const termCounts = new Map<string, number>();
+  
+  allTerms.forEach(term => {
+    const cleaned = term.toLowerCase().replace(/[-_]/g, ' ');
+    termCounts.set(cleaned, (termCounts.get(cleaned) || 0) + 1);
+  });
+  
+  const meaningfulTerms = Array.from(termCounts.entries())
+    .filter(([term, count]) => 
+      count >= 2 && 
+      term.length > 2 && 
+      !['javascript', 'python', 'react', 'nodejs', 'api', 'web', 'app'].includes(term)
+    )
+    .sort(([,a], [,b]) => b - a)
+    .map(([term]) => term);
+  
+  if (meaningfulTerms.length > 0) {
+    const primary = meaningfulTerms[0];
+    return primary.charAt(0).toUpperCase() + primary.slice(1).replace(/\b\w/g, l => l.toUpperCase());
+  }
+  
+  const descriptions = projects.map(p => p.description.toLowerCase()).join(' ');
+  const commonWords = ['health', 'education', 'climate', 'ai', 'finance', 'government'];
+  const foundWord = commonWords.find(word => descriptions.includes(word));
+  
+  return foundWord ? 
+    foundWord.charAt(0).toUpperCase() + foundWord.slice(1) :
+    `Technology Cluster`;
+}
+
+/**
+ * Get top N most frequent items
+ */
+function getTopItems(items: string[], n: number = 3): string[] {
+  const counts = new Map<string, number>();
+  items.forEach(item => counts.set(item, (counts.get(item) || 0) + 1));
+  
+  return Array.from(counts.entries())
+    .sort(([,a], [,b]) => b - a)
+    .slice(0, n)
+    .map(([item]) => item);
 }
