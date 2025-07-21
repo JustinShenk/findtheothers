@@ -1,7 +1,22 @@
 'use client';
 
 import { useState } from 'react';
-import { AdvancedCanvas } from '@/components/visualization/advanced-canvas';
+import dynamic from 'next/dynamic';
+
+const AdvancedCanvas = dynamic(
+  () => import('@/components/visualization/advanced-canvas').then(mod => ({ default: mod.AdvancedCanvas })),
+  { 
+    ssr: false,
+    loading: () => (
+      <div className="h-full w-full flex items-center justify-center bg-gradient-to-br from-slate-900 to-slate-800">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-400 mx-auto mb-4"></div>
+          <p className="text-white text-lg">Loading visualization...</p>
+        </div>
+      </div>
+    )
+  }
+);
 import { VisualizationControls } from '@/components/visualization/controls';
 import { CauseFilter } from '@/components/shared/cause-filter';
 import { ImpactMetrics } from '@/components/shared/impact-metrics';
