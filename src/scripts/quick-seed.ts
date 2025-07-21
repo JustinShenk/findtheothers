@@ -51,49 +51,56 @@ async function main() {
   // Create sample initiatives
   const initiatives = [
     {
+      type: 'repository',
+      platform: 'github',
+      externalId: 'climate-action-tracker-1',
       name: 'Climate Action Tracker',
       description: 'Open source tool for tracking climate commitments',
       url: 'https://github.com/climate-action-tracker',
-      platform: 'github',
       stars: 1234,
       forks: 567,
-      languages: ['TypeScript', 'Python'],
-      topics: ['climate', 'data-visualization'],
+      languagesJson: JSON.stringify(['TypeScript', 'Python']),
+      topicsJson: JSON.stringify(['climate', 'data-visualization']),
       causeId: causes[0].id,
     },
     {
+      type: 'repository', 
+      platform: 'github',
+      externalId: 'ai-alignment-research-1',
       name: 'AI Alignment Research',
       description: 'Research tools for AI safety and alignment',
       url: 'https://github.com/ai-alignment-research',
-      platform: 'github', 
       stars: 2345,
       forks: 890,
-      languages: ['Python', 'Jupyter Notebook'],
-      topics: ['ai-safety', 'research'],
+      languagesJson: JSON.stringify(['Python', 'Jupyter Notebook']),
+      topicsJson: JSON.stringify(['ai-safety', 'research']),
       causeId: causes[1].id,
     },
     {
+      type: 'repository',
+      platform: 'github', 
+      externalId: 'global-health-db-1',
       name: 'Global Health Database',
       description: 'Open database of global health interventions',
       url: 'https://github.com/global-health-db',
-      platform: 'github',
       stars: 987,
       forks: 234,
-      languages: ['R', 'Python'],
-      topics: ['health', 'data'],
+      languagesJson: JSON.stringify(['R', 'Python']),
+      topicsJson: JSON.stringify(['health', 'data']),
       causeId: causes[2].id,
     },
   ];
 
   for (const init of initiatives) {
     await prisma.initiative.upsert({
-      where: { url: init.url },
-      update: {},
-      create: {
-        ...init,
-        languages: JSON.stringify(init.languages),
-        topics: JSON.stringify(init.topics),
+      where: { 
+        platform_externalId: {
+          platform: init.platform,
+          externalId: init.externalId
+        }
       },
+      update: {},
+      create: init,
     });
   }
 
