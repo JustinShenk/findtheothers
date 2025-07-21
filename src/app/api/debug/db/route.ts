@@ -39,9 +39,9 @@ export async function GET() {
       status: 'error',
       message: 'Database connection failed',
       error: {
-        name: error.name,
-        message: error.message,
-        code: error.code || 'Unknown',
+        name: (error as any).name || 'Unknown',
+        message: (error as any).message || 'Unknown error',
+        code: (error as any).code || 'Unknown',
       },
       databaseUrl: process.env.DATABASE_URL ? 'Set' : 'Not set'
     }, { status: 500 });
