@@ -28,7 +28,7 @@ export default function HomePage() {
     limit: 1000,
   });
   
-  const { opportunities } = useCoordinationOpportunities({
+  const { data: opportunities } = useCoordinationOpportunities({
     causes: selectedCauses,
     status: 'open',
   });
