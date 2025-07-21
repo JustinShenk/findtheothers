@@ -211,7 +211,7 @@ export class ScalableCauseDiscovery {
       );
       
       const batchResults = await Promise.all(batchPromises);
-      results.push(...batchResults.filter(Boolean));
+      results.push(...batchResults.filter((result): result is ScalableCause => result !== null));
     }
     
     return results;
@@ -414,11 +414,15 @@ Return JSON:
     const features = projects.map(p => this.createMetadataFeatures(p));
     
     const optimalK = Math.min(6, Math.floor(projects.length / 3));
-    const clusterResult = kmeans(features, optimalK);
+    const clusterResult = kmeans(features, optimalK, {
+      initialization: 'kmeans++',
+      maxIterations: 30,
+    });
     
     return this.analyzeClustersInBatches(
       this.groupProjectsByCluster(projects, clusterResult),
-      0
+      0,
+      undefined
     );
   }
   
