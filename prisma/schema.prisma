@@ -1,0 +1,320 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  name          String?
+  image         String?
+  emailVerified DateTime?
+  accounts      Account[]
+  sessions      Session[]
+  contributor   Contributor?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Contributor {
+  id                    String                    @id @default(cuid())
+  userId                String?                   @unique
+  githubUsername        String?                   @unique
+  email                 String?
+  name                  String?
+  bio                   String?
+  avatar                String?
+  location              String?
+  timezone              String?
+  website               String?
+  socialLinksJson       String?
+  skillsJson            String?
+  experienceJson        String?
+  availabilityJson      String?
+  preferencesJson       String?
+  reputationJson        String?
+  user                  User?                     @relation(fields: [userId], references: [id])
+  causes                ContributorCause[]
+  mentorRelationships   MentorshipRelationship[]  @relation("Mentor")
+  menteeRelationships   MentorshipRelationship[]  @relation("Mentee")
+  coordinationParticipations CoordinationParticipant[]
+  createdInitiatives    Initiative[]              @relation("InitiativeCreator")
+  contributedInitiatives InitiativeContributor[]
+  endorsementsGiven     Endorsement[]             @relation("EndorsementGiver")
+  endorsementsReceived  Endorsement[]             @relation("EndorsementReceiver")
+  createdAt             DateTime                  @default(now())
+  updatedAt             DateTime                  @updatedAt
+  lastActiveAt          DateTime                  @default(now())
+}
+
+model Cause {
+  id                     String                   @id @default(cuid())
+  name                   String
+  slug                   String                   @unique
+  description            String
+  parentId               String?
+  parent                 Cause?                   @relation("CauseHierarchy", fields: [parentId], references: [id])
+  children               Cause[]                  @relation("CauseHierarchy")
+  level                  Int                      @default(0)
+  color                  String
+  icon                   String?
+  keywordsJson           String?
+  impactScore            Float                    @default(0)
+  metadataJson           String?
+  initiatives            Initiative[]
+  contributors           ContributorCause[]
+  coordinationOpportunities CoordinationOpportunity[]
+  mentorships            MentorshipRelationship[]
+  learningPathways       LearningPathway[]
+  createdAt              DateTime                 @default(now())
+  updatedAt              DateTime                 @updatedAt
+}
+
+model ContributorCause {
+  id                   String      @id @default(cuid())
+  contributorId        String
+  causeId              String
+  experienceLevel      String
+  startedAt            DateTime    @default(now())
+  contributionHours    Float       @default(0)
+  projectsCompleted    Int         @default(0)
+  mentorshipGiven      Int         @default(0)
+  mentorshipReceived   Int         @default(0)
+  primaryFocus         Boolean     @default(false)
+  contributor          Contributor @relation(fields: [contributorId], references: [id])
+  cause                Cause       @relation(fields: [causeId], references: [id])
+  
+  @@unique([contributorId, causeId])
+}
+
+model Initiative {
+  id                String                    @id @default(cuid())
+  type              String
+  platform          String
+  externalId        String
+  name              String
+  description       String
+  url               String
+  ownerJson         String?
+  causeId           String
+  cause             Cause                     @relation(fields: [causeId], references: [id])
+  secondaryCausesJson String?
+  tagsJson          String?
+  languagesJson     String?
+  topicsJson        String?
+  stars             Int                       @default(0)
+  forks             Int                       @default(0)
+  activityJson      String?
+  impactJson        String?
+  coordinationNeedsJson String?
+  embeddingJson     String?
+  metadataJson      String?
+  classification    CauseClassification?
+  contributors      InitiativeContributor[]
+  coordinationOpportunities CoordinationOpportunity[]
+  creatorId         String?
+  creator           Contributor?              @relation("InitiativeCreator", fields: [creatorId], references: [id])
+  createdAt         DateTime                  @default(now())
+  updatedAt         DateTime                  @updatedAt
+  lastActivityAt    DateTime                  @default(now())
+  
+  @@unique([platform, externalId])
+  @@index([causeId])
+}
+
+model InitiativeContributor {
+  id             String      @id @default(cuid())
+  initiativeId   String
+  contributorId  String
+  role           String
+  contributions  Int         @default(0)
+  firstContribution DateTime @default(now())
+  lastContribution  DateTime @default(now())
+  initiative     Initiative  @relation(fields: [initiativeId], references: [id])
+  contributor    Contributor @relation(fields: [contributorId], references: [id])
+  
+  @@unique([initiativeId, contributorId])
+}
+
+model CauseClassification {
+  id               String     @id @default(cuid())
+  initiativeId     String     @unique
+  primaryCause     String
+  secondaryCausesJson String?
+  confidence       Float
+  classifiedBy     String
+  validationStatus String     @default("pending")
+  validatedBy      String?
+  validatedAt      DateTime?
+  initiative       Initiative @relation(fields: [initiativeId], references: [id])
+  classifiedAt     DateTime   @default(now())
+}
+
+model CoordinationOpportunity {
+  id              String                    @id @default(cuid())
+  type            String
+  title           String
+  description     String
+  causeId         String
+  initiativeId    String?
+  createdById     String
+  status          String                    @default("open")
+  requirementsJson String?
+  visibility      String                    @default("public")
+  tagsJson        String?
+  cause           Cause                     @relation(fields: [causeId], references: [id])
+  initiative      Initiative?               @relation(fields: [initiativeId], references: [id])
+  participants    CoordinationParticipant[]
+  outcomes        CoordinationOutcome[]
+  createdAt       DateTime                  @default(now())
+  updatedAt       DateTime                  @updatedAt
+}
+
+model CoordinationParticipant {
+  id              String                  @id @default(cuid())
+  opportunityId   String
+  contributorId   String
+  role            String
+  contribution    String?
+  feedbackJson    String?
+  opportunity     CoordinationOpportunity @relation(fields: [opportunityId], references: [id])
+  contributor     Contributor             @relation(fields: [contributorId], references: [id])
+  joinedAt        DateTime                @default(now())
+  
+  @@unique([opportunityId, contributorId])
+}
+
+model CoordinationOutcome {
+  id            String                  @id @default(cuid())
+  opportunityId String
+  type          String
+  description   String
+  impactJson    String?
+  artifactsJson String?
+  recordedBy    String
+  opportunity   CoordinationOpportunity @relation(fields: [opportunityId], references: [id])
+  recordedAt    DateTime                @default(now())
+}
+
+model MentorshipRelationship {
+  id         String               @id @default(cuid())
+  mentorId   String
+  menteeId   String
+  causeId    String
+  status     String               @default("active")
+  goalsJson  String?
+  progressJson String?
+  feedbackJson String?
+  mentor     Contributor          @relation("Mentor", fields: [mentorId], references: [id])
+  mentee     Contributor          @relation("Mentee", fields: [menteeId], references: [id])
+  cause      Cause                @relation(fields: [causeId], references: [id])
+  sessions   MentorshipSession[]
+  startedAt  DateTime             @default(now())
+  endedAt    DateTime?
+  
+  @@unique([mentorId, menteeId, causeId])
+}
+
+model MentorshipSession {
+  id               String                 @id @default(cuid())
+  relationshipId   String
+  scheduledAt      DateTime
+  duration         Int
+  type             String
+  topicsJson       String?
+  notes            String?
+  actionItemsJson  String?
+  attended         Boolean                @default(false)
+  relationship     MentorshipRelationship @relation(fields: [relationshipId], references: [id])
+  createdAt        DateTime               @default(now())
+}
+
+model LearningPathway {
+  id                   String   @id @default(cuid())
+  causeId              String
+  name                 String
+  description          String
+  experienceLevel      String
+  estimatedDuration    String
+  milestonesJson       String?
+  recommendedResourcesJson String?
+  cause                Cause    @relation(fields: [causeId], references: [id])
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+}
+
+model Endorsement {
+  id           String      @id @default(cuid())
+  giverId      String
+  receiverId   String
+  skill        String?
+  message      String
+  giver        Contributor @relation("EndorsementGiver", fields: [giverId], references: [id])
+  receiver     Contributor @relation("EndorsementReceiver", fields: [receiverId], references: [id])
+  createdAt    DateTime    @default(now())
+  
+  @@unique([giverId, receiverId, skill])
+}
+
+model PipelineJob {
+  id          String    @id @default(cuid())
+  type        String
+  status      String    @default("pending")
+  priority    Int       @default(0)
+  dataJson    String?
+  resultJson  String?
+  error       String?
+  attempts    Int       @default(0)
+  maxAttempts Int       @default(3)
+  createdAt   DateTime  @default(now())
+  startedAt   DateTime?
+  completedAt DateTime?
+  nextRunAt   DateTime?
+  
+  @@index([status, priority])
+  @@index([type, status])
+}
+
+model ValidationQueue {
+  id             String   @id @default(cuid())
+  initiativeId   String
+  classificationJson String?
+  priority       String   @default("medium")
+  assignedTo     String?
+  status         String   @default("pending")
+  reviewNotes    String?
+  createdAt      DateTime @default(now())
+  reviewedAt     DateTime?
+  
+  @@index([status, priority])
+}
