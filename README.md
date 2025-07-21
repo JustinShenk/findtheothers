@@ -1,11 +1,11 @@
-# CollabMap - Cause-Driven Coordination Discovery Platform
+# Find the Others - Discover Your Community
 
-> Discover your community working on humanity's most important challenges
+> Find the others working on humanity's most important challenges
 
 ## Project Structure
 
 ```
-collabmap/
+findtheothers/
 ├── src/
 │   ├── app/                    # Next.js App Router pages
 │   │   ├── api/               # API routes
