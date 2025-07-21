@@ -18,6 +18,7 @@
     "scrape:github": "tsx src/scripts/scrape-github.ts",
     "scrape:github:limited": "tsx src/scripts/scrape-github-limited.ts",
     "generate:embeddings": "tsx src/scripts/generate-embeddings.ts",
+    "seed:quick": "tsx src/scripts/quick-seed.ts",
     "pipeline:dev": "tsx watch src/lib/pipeline/runner.ts",
     "pipeline:run": "tsx src/lib/pipeline/runner.ts",
     "test": "jest",

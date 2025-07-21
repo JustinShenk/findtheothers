@@ -45,12 +45,14 @@ export default function HomePage() {
   return (
     <div className="relative h-screen w-full overflow-hidden bg-gradient-to-br from-slate-900 via-gray-900 to-black">
       {/* Header Controls */}
-      <div className="absolute top-4 left-4 z-20 flex gap-4">
+      <div className="absolute top-4 left-4 z-20 flex flex-col sm:flex-row gap-2 sm:gap-4">
         <CauseFilter
           selected={selectedCauses}
           onChange={setSelectedCauses}
         />
-        <ImpactMetrics data={data?.metrics} />
+        <div className="hidden sm:block">
+          <ImpactMetrics data={data?.metrics} />
+        </div>
       </div>
       
       {/* Top Right Controls */}
