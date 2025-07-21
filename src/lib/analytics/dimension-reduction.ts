@@ -89,19 +89,19 @@ export class DimensionReduction {
     
     try {
       this.pca = new PCA(matrix, { center: true, scale: true });
-      transformed = this.pca.predict(matrix, targetDimensions);
+      transformed = this.pca.predict(matrix, { nComponents: targetDimensions });
       pcaVariance = this.pca.getExplainedVariance();
     } catch (error) {
       // If scaling fails due to zero variance, try without scaling
       console.warn('PCA with scaling failed, retrying without scaling:', error);
       try {
         this.pca = new PCA(matrix, { center: true, scale: false });
-        transformed = this.pca.predict(matrix, targetDimensions);
+        transformed = this.pca.predict(matrix, { nComponents: targetDimensions });
         pcaVariance = this.pca.getExplainedVariance();
       } catch (fallbackError) {
         // If PCA still fails, use random positions as fallback
         console.error('PCA failed completely, using random positions:', fallbackError);
-        const randomPositions = Matrix.rand(nodes.length, targetDimensions, -10, 10);
+        const randomPositions = Matrix.rand(nodes.length, targetDimensions);
         transformed = randomPositions;
       }
     }

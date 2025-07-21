@@ -402,8 +402,7 @@ export function AdvancedCanvas({ data, isLoading, onNodeClick, onNodeHover }: Ad
         cooldownTime={viewMode === 'force' ? 15000 : 0}
         nodeOpacity={0.9}
         enablePointerInteraction={true}
-        forceEngine={viewMode === 'force' ? 'd3' : null}
-        d3ForceLayout={viewMode === 'force' ? 'charge' : null}
+        forceEngine={viewMode === 'force' ? 'd3' : undefined}
       />
     </div>
   );

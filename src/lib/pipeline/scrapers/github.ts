@@ -118,8 +118,8 @@ export const githubScraper = {
       for (const repo of response.data.items) {
         // Get additional repo details
         const [languages, contributors, topics] = await Promise.all([
-          octokit.repos.listLanguages({ owner: repo.owner.login, repo: repo.name }).catch(() => ({ data: {} })),
-          octokit.repos.listContributors({ owner: repo.owner.login, repo: repo.name, per_page: 5 }).catch(() => ({ data: [] })),
+          octokit.repos.listLanguages({ owner: repo.owner?.login || '', repo: repo.name }).catch(() => ({ data: {} })),
+          octokit.repos.listContributors({ owner: repo.owner?.login || '', repo: repo.name, per_page: 5 }).catch(() => ({ data: [] })),
           Promise.resolve({ data: repo.topics || [] }),
         ]);
 
@@ -131,11 +131,11 @@ export const githubScraper = {
           description: repo.description || '',
           url: repo.html_url,
           ownerJson: JSON.stringify({
-            id: repo.owner.id.toString(),
-            name: repo.owner.login,
-            type: repo.owner.type.toLowerCase(),
-            avatar: repo.owner.avatar_url,
-            url: repo.owner.html_url,
+            id: repo.owner?.id.toString(),
+            name: repo.owner?.login,
+            type: repo.owner?.type.toLowerCase(),
+            avatar: repo.owner?.avatar_url,
+            url: repo.owner?.html_url,
           }),
           stars: repo.stargazers_count,
           forks: repo.forks_count,
@@ -207,7 +207,7 @@ export const githubScraper = {
     const causes = await prisma.cause.findMany();
     
     for (const cause of causes) {
-      const queries = CAUSE_QUERIES[cause.slug] || [cause.name.toLowerCase()];
+      const queries = (CAUSE_QUERIES as any)[cause.slug] || [cause.name.toLowerCase()];
       const reposForCause: any[] = [];
       
       for (const query of queries) {
