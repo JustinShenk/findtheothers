@@ -4,23 +4,23 @@ import { VisualizationNode } from '@/types/visualization';
 import { X, Star, GitFork, ExternalLink } from 'lucide-react';
 
 interface NodeDetailsPanelProps {
-  node: VisualizationNode | null;
-  onClose: () => void;
+  node: VisualizationNode;
+  onClose?: () => void;
 }
 
 export function NodeDetailsPanel({ node, onClose }: NodeDetailsPanelProps) {
-  if (!node) return null;
-
   return (
-    <div className="absolute top-4 right-4 w-80 bg-black/90 backdrop-blur-sm border border-gray-600 rounded-lg p-4 text-white z-30">
+    <div className="w-80 bg-black/90 backdrop-blur-sm border border-gray-600 rounded-lg p-4 text-white">
       <div className="flex items-start justify-between mb-3">
         <h3 className="font-semibold text-lg">{node.label}</h3>
-        <button
-          onClick={onClose}
-          className="p-1 hover:bg-gray-700 rounded"
-        >
-          <X className="h-4 w-4" />
-        </button>
+        {onClose && (
+          <button
+            onClick={onClose}
+            className="p-1 hover:bg-gray-700 rounded"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        )}
       </div>
       
       <div className="space-y-3">

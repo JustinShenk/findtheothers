@@ -9,7 +9,7 @@ import { CoordinationPanel } from '@/components/coordination/panel';
 import { NodeDetailsPanel } from '@/components/visualization/node-details-panel';
 import { useVisualizationData } from '@/hooks/use-visualization-data';
 import { useCoordinationOpportunities } from '@/hooks/use-coordination-opportunities';
-import { Settings, X } from 'lucide-react';
+import { Settings } from 'lucide-react';
 
 export default function HomePage() {
   const [selectedCauses, setSelectedCauses] = useState<string[]>([]);
@@ -34,29 +34,46 @@ export default function HomePage() {
     status: 'open',
   });
 
-  const handleNodeClick = (node: any) => {
-    console.log('Node clicked:', node);
-    // You can add more interaction logic here
-  };
-
   const [hoveredNode, setHoveredNode] = useState<any>(null);
+  const [pinnedNodes, setPinnedNodes] = useState<any[]>([]);
+
+  const transformNode = (node: any) => node ? {
+    id: node.id,
+    label: node.name,
+    type: 'initiative',
+    color: node.color,
+    data: {
+      description: node.description,
+      stars: node.stars,
+      forks: node.forks,
+      url: node.url,
+      cause: node.cause
+    }
+  } : null;
 
   const handleNodeHover = (node: any) => {
-    // Transform data to match NodeDetailsPanel expectations
-    const transformedNode = node ? {
-      id: node.id,
-      label: node.name,
-      type: 'initiative',
-      color: node.color,
-      data: {
-        description: node.description,
-        stars: node.stars,
-        forks: node.forks,
-        url: node.url,
-        cause: node.cause
+    setHoveredNode(transformNode(node));
+  };
+
+  const handleNodeClick = (node: any) => {
+    const transformedNode = transformNode(node);
+    if (!transformedNode) return;
+
+    // Don't add if already pinned
+    if (pinnedNodes.some(pinned => pinned.id === transformedNode.id)) return;
+
+    // Add to pinned nodes (max 3)
+    setPinnedNodes(prev => {
+      if (prev.length >= 3) {
+        // Replace the oldest (first) with the new one
+        return [...prev.slice(1), transformedNode];
       }
-    } : null;
-    setHoveredNode(transformedNode);
+      return [...prev, transformedNode];
+    });
+  };
+
+  const handleRemovePinned = (nodeId: string) => {
+    setPinnedNodes(prev => prev.filter(node => node.id !== nodeId));
   };
 
   return (
@@ -72,11 +89,25 @@ export default function HomePage() {
         />
       </div>
 
-      {/* Node Details Panel for Hover */}
-      <NodeDetailsPanel 
-        node={hoveredNode} 
-        onClose={() => setHoveredNode(null)} 
-      />
+      {/* Pinned and Hover Panels */}
+      <div className="absolute top-4 right-4 z-30 flex flex-col gap-3">
+        {/* Pinned Panels */}
+        {pinnedNodes.map((node) => (
+          <NodeDetailsPanel
+            key={node.id}
+            node={node}
+            onClose={() => handleRemovePinned(node.id)}
+          />
+        ))}
+        
+        {/* Hover Preview Panel */}
+        {hoveredNode && !pinnedNodes.some(pinned => pinned.id === hoveredNode.id) && (
+          <NodeDetailsPanel
+            node={hoveredNode}
+            onClose={() => setHoveredNode(null)}
+          />
+        )}
+      </div>
 
       {/* Coordination Panel */}
       {showCoordinationPanel && (
