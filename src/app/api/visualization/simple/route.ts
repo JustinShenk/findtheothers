@@ -96,7 +96,7 @@ export async function GET(request: Request) {
   } catch (error) {
     console.error('Error creating simple visualization:', error);
     return NextResponse.json({
-      error: 'Failed to create visualization',
+      error: `Failed to create visualization: ${error}`,
       data: []
     }, { status: 500 });
   }
