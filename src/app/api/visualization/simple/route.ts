@@ -24,7 +24,6 @@ export async function GET(request: Request) {
     // Get precomputed PCA data
     const pcaData = await prisma.precomputedPCA.findMany({
       where: pcaWhere,
-      take: limit,
       include: {
         initiative: {
           select: {
@@ -43,9 +42,6 @@ export async function GET(request: Request) {
             }
           }
         }
-      },
-      orderBy: {
-        initiative: { stars: 'desc' }
       }
     });
 
