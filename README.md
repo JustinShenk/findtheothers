@@ -116,6 +116,8 @@ findtheothers/
 5. Run development server: `npm run dev`
 6. Run pipeline: `npm run pipeline:dev`
 
+For database schema changes, see [docs/database-migrations.md](docs/database-migrations.md).
+
 ## Architecture Decisions
 
 - **Next.js App Router**: Modern React framework with SSR/SSG
