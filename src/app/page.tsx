@@ -14,7 +14,7 @@ import { Settings } from 'lucide-react';
 
 export default function HomePage() {
   const searchParams = useSearchParams();
-  const [selectedCauses, setSelectedCauses] = useState<string[]>([]);
+  const [selectedCause, setSelectedCause] = useState<string>('');
   const [viewMode, setViewMode] = useState<'force' | 'pca' | 'clusters'>('pca');
   const [showCoordinationPanel, setShowCoordinationPanel] = useState(false);
   const [showControls, setShowControls] = useState(false);
@@ -28,11 +28,12 @@ export default function HomePage() {
 
   const { data, isLoading } = useVisualizationData({
     limit: 1000,
+    causes: selectedCause ? [selectedCause] : undefined,
     dimReduction: searchParams.get('dimreduction') as 'pca' | 'trunc' | null || undefined,
   });
 
   const { data: opportunities } = useCoordinationOpportunities({
-    causes: selectedCauses,
+    causes: selectedCause ? [selectedCause] : [],
     status: 'open',
   });
 
@@ -109,6 +110,14 @@ export default function HomePage() {
             onClose={() => setHoveredNode(null)}
           />
         )}
+      </div>
+
+      {/* Top Controls */}
+      <div className="absolute top-4 left-4 z-30 flex gap-3">
+        <CauseFilter
+          selected={selectedCause}
+          onChange={setSelectedCause}
+        />
       </div>
 
       {/* Coordination Panel */}

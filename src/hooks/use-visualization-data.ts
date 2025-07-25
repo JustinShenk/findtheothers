@@ -40,6 +40,9 @@ export function useVisualizationData(params: UseVisualizationDataParams = {}) {
       if (params.dimReduction) {
         searchParams.append('dimreduction', params.dimReduction);
       }
+      if (params.causes && params.causes.length === 1) {
+        searchParams.append('causeId', params.causes[0]);
+      }
 
       const response = await fetch(`/api/visualization/simple?${searchParams}`);
       if (!response.ok) {
