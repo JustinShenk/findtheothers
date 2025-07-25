@@ -14,82 +14,80 @@ function calculateDotSize({
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const limit = parseInt(searchParams.get('limit') || '500');
+  const causeId = searchParams.get('causeId'); // Optional cause filter
 
   try {
-    // Get initiatives with embeddings
-    const initiatives = await prisma.initiative.findMany({
-      where: {
-        embeddingJson: { not: null }
-      },
+    // Build where clause for PCA data
+    const pcaWhere = causeId ? { causeId } : { causeId: null }; // null = global scope
+
+    // Get precomputed PCA data
+    const pcaData = await prisma.precomputedPCA.findMany({
+      where: pcaWhere,
       take: limit,
-      orderBy: { stars: 'desc' },
-      select: {
-        id: true,
-        name: true,
-        description: true,
-        stars: true,
-        forks: true,
-        url: true,
-        embeddingJson: true,
-        cause: {
+      include: {
+        initiative: {
           select: {
+            id: true,
             name: true,
-            color: true
+            description: true,
+            stars: true,
+            forks: true,
+            url: true,
+            cause: {
+              select: {
+                name: true,
+                color: true
+              }
+            }
           }
         }
+      },
+      orderBy: {
+        initiative: { stars: 'desc' }
       }
     });
 
-    if (initiatives.length === 0) {
+    if (pcaData.length === 0) {
       return NextResponse.json({
         data: [],
-        message: 'No initiatives with embeddings found'
+        message: causeId ? 'No PCA data found for this cause' : 'No precomputed PCA data found'
       });
     }
 
-    // Parse embeddings and prepare for PCA
-    const embeddingData = initiatives.map(init => ({
-      ...init,
-      embedding: JSON.parse(init.embeddingJson || '[]')
-    })).filter(init => init.embedding.length > 0);
-
-    if (embeddingData.length < 2) {
-      return NextResponse.json({
-        data: [],
-        message: 'Not enough valid embeddings for visualization'
-      });
-    }
-
-    // Reduce embeddings to 2D using PCA
-    const embeddings = embeddingData.map(init => init.embedding.slice(0, 100)); // Use first 100 dims
-    const pca = new PCA(embeddings, { center: true, scale: false });
-    const projected = pca.predict(embeddings, { nComponents: 2 });
-
-    // Convert to react-dot-visualization format
-    const data = embeddingData.map((init, index) => {
-      const [x, y] = projected.getRow(index);
+    // Convert to react-dot-visualization format using precomputed PCA
+    const data = pcaData.map((pca) => {
+      const [x, y] = pca.components; // Use first 2 PCA components
 
       return {
-        id: init.id,
+        id: pca.initiative.id,
         x: x * 100, // Scale coordinates
         y: y * 100,
-        size: calculateDotSize({ value: init.stars, minSize: 0.05, maxSize: 1.5, scaleFactor: 0.2 }), // Size based on stars
-        color: init.cause?.color || '#6366f1',
-        name: init.name,
-        description: init.description,
-        stars: init.stars,
-        forks: init.forks,
-        url: init.url,
-        cause: init.cause?.name || 'Unknown'
+        size: calculateDotSize({
+          value: pca.initiative.stars,
+          minSize: 0.1,
+          maxSize: 1.5,
+          scaleFactor: 0.15
+        }),
+        color: pca.initiative.cause?.color || '#6366f1',
+        name: pca.initiative.name,
+        description: pca.initiative.description,
+        stars: pca.initiative.stars,
+        forks: pca.initiative.forks,
+        url: pca.initiative.url,
+        cause: pca.initiative.cause?.name || 'Unknown'
       };
     });
+
+    // Get explained variance from first record (same for all in scope)
+    const explainedVariance = pcaData[0]?.variance?.slice(0, 2) || [0, 0];
 
     return NextResponse.json({
       data,
       metadata: {
         totalCount: data.length,
-        pcaExplainedVariance: pca.getExplainedVariance().slice(0, 2),
-        method: 'pca-2d'
+        pcaExplainedVariance: explainedVariance,
+        method: 'precomputed-pca-2d',
+        scope: causeId ? 'cause-specific' : 'global'
       }
     });
 
