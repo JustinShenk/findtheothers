@@ -158,7 +158,7 @@ export const githubScraper = {
             score: this.calculateImpactScore(repo),
             reach: 'global',
             beneficiaries: repo.stargazers_count * 10, // Rough estimate
-            communitySize: contributors.data.length,
+            communitySize: contributors?.data?.length || 0,
             citationCount: 0,
             derivativeWorks: repo.forks_count,
           }),
