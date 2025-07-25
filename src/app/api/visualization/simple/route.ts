@@ -4,6 +4,10 @@ import { PCA } from 'ml-pca';
 
 const prisma = new PrismaClient();
 
+function calculateDotSize({ value, maxSize, scaleFactor }: { value: number; maxSize: number; scaleFactor: number }) {
+  return Math.min(maxSize, 0.3 + Math.log10(value + 1) * scaleFactor);
+}
+
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const limit = parseInt(searchParams.get('limit') || '500');
@@ -66,7 +70,7 @@ export async function GET(request: Request) {
         id: init.id,
         x: x * 100, // Scale coordinates
         y: y * 100,
-        size: Math.min(1.5, 0.3 + Math.log10(init.stars + 1) * 0.2), // Size based on stars
+        size: calculateDotSize({ value: init.stars, maxSize: 1.5, scaleFactor: 0.2 }), // Size based on stars
         color: init.cause?.color || '#6366f1',
         name: init.name,
         description: init.description,
