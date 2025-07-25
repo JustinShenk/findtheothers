@@ -58,14 +58,15 @@ export async function GET(request: Request) {
 
     // Convert to react-dot-visualization format using precomputed PCA or truncation
     const data = pcaData.map((pca) => {
-      const [x, y] = dimReduction === 'trunc' 
+      const [x, y] = dimReduction === 'trunc'
         ? JSON.parse(pca.initiative.embeddingJson || '[]') // Use first 2 embedding dims
         : pca.components; // Use first 2 PCA components
 
+      const scale = dimReduction === 'trunc' ? 300 : 100; // Scale for truncation vs PCA
       return {
         id: pca.initiative.id,
-        x: x * 100, // Scale coordinates
-        y: y * 100,
+        x: x * scale, // Scale coordinates
+        y: y * scale,
         size: calculateDotSize({
           value: pca.initiative.stars,
           minSize: 0.1,
