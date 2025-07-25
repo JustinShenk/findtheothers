@@ -15,6 +15,7 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const limit = parseInt(searchParams.get('limit') || '500');
   const causeId = searchParams.get('causeId'); // Optional cause filter
+  const dimReduction = searchParams.get('dimreduction') || 'pca'; // 'pca' or 'trunc'
 
   try {
     // Build where clause for PCA data
@@ -33,6 +34,7 @@ export async function GET(request: Request) {
             stars: true,
             forks: true,
             url: true,
+            embeddingJson: true,
             cause: {
               select: {
                 name: true,
@@ -54,9 +56,11 @@ export async function GET(request: Request) {
       });
     }
 
-    // Convert to react-dot-visualization format using precomputed PCA
+    // Convert to react-dot-visualization format using precomputed PCA or truncation
     const data = pcaData.map((pca) => {
-      const [x, y] = pca.components; // Use first 2 PCA components
+      const [x, y] = dimReduction === 'trunc' 
+        ? JSON.parse(pca.initiative.embeddingJson || '[]') // Use first 2 embedding dims
+        : pca.components; // Use first 2 PCA components
 
       return {
         id: pca.initiative.id,
@@ -86,7 +90,7 @@ export async function GET(request: Request) {
       metadata: {
         totalCount: data.length,
         pcaExplainedVariance: explainedVariance,
-        method: 'precomputed-pca-2d',
+        method: dimReduction === 'trunc' ? 'truncation-2d' : 'precomputed-pca-2d',
         scope: causeId ? 'cause-specific' : 'global'
       }
     });

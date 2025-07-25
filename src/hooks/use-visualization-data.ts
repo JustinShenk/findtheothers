@@ -26,6 +26,7 @@ interface SimpleVisualizationResponse {
 interface UseVisualizationDataParams {
   limit?: number;
   causes?: string[];
+  dimReduction?: 'pca' | 'trunc';
 }
 
 export function useVisualizationData(params: UseVisualizationDataParams = {}) {
@@ -35,6 +36,9 @@ export function useVisualizationData(params: UseVisualizationDataParams = {}) {
       const searchParams = new URLSearchParams();
       if (params.limit) {
         searchParams.append('limit', params.limit.toString());
+      }
+      if (params.dimReduction) {
+        searchParams.append('dimreduction', params.dimReduction);
       }
 
       const response = await fetch(`/api/visualization/simple?${searchParams}`);

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import { DotVisualization } from 'react-dot-visualization';
 import { VisualizationControls } from '@/components/visualization/controls';
@@ -12,6 +13,7 @@ import { useCoordinationOpportunities } from '@/hooks/use-coordination-opportuni
 import { Settings } from 'lucide-react';
 
 export default function HomePage() {
+  const searchParams = useSearchParams();
   const [selectedCauses, setSelectedCauses] = useState<string[]>([]);
   const [viewMode, setViewMode] = useState<'force' | 'pca' | 'clusters'>('pca');
   const [showCoordinationPanel, setShowCoordinationPanel] = useState(false);
@@ -26,6 +28,7 @@ export default function HomePage() {
 
   const { data, isLoading } = useVisualizationData({
     limit: 1000,
+    dimReduction: searchParams.get('dimreduction') as 'pca' | 'trunc' | null || undefined,
   });
 
   const { data: opportunities } = useCoordinationOpportunities({
