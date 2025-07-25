@@ -13,7 +13,6 @@ function calculateDotSize({
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
-  const limit = parseInt(searchParams.get('limit') || '500');
   const causeId = searchParams.get('causeId'); // Optional cause filter
   const dimReduction = searchParams.get('dimreduction') || 'pca'; // 'pca' or 'trunc'
 

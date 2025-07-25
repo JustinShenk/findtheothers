@@ -27,8 +27,7 @@ function HomePageContent() {
   const [linkOpacity, setLinkOpacity] = useState(0.6);
 
   const { data, isLoading } = useVisualizationData({
-    limit: 1000,
-    causes: selectedCause ? [selectedCause] : undefined,
+        causes: selectedCause ? [selectedCause] : undefined,
     dimReduction: searchParams.get('dimreduction') as 'pca' | 'trunc' | null || undefined,
   });
 
