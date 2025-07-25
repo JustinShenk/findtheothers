@@ -9,8 +9,14 @@ async function generateEmbeddings() {
   logger.info('Starting embedding generation...');
   
   try {
-    // Get all initiatives
+    // Get initiatives that don't have embeddings yet
     const initiatives = await prisma.initiative.findMany({
+      where: {
+        OR: [
+          { embeddingJson: null },
+          { embeddingJson: '' },
+        ],
+      },
       include: {
         cause: true,
       },
@@ -73,11 +79,18 @@ async function generateEmbeddings() {
     
     logger.info(`✅ Embedding generation complete! Processed ${processed} initiatives`);
     
-    // Generate embeddings for causes
-    logger.info('Generating cause embeddings...');
+    // Generate embeddings for causes that don't have them yet
+    logger.info('Checking for causes needing embeddings...');
     const causes = await prisma.cause.findMany();
     
-    for (const cause of causes) {
+    const causesNeedingEmbeddings = causes.filter(cause => {
+      const metadata = JSON.parse(cause.metadataJson || '{}');
+      return !metadata.embedding;
+    });
+    
+    logger.info(`Found ${causesNeedingEmbeddings.length} causes needing embeddings`);
+    
+    for (const cause of causesNeedingEmbeddings) {
       try {
         const causeData = {
           id: cause.id,
