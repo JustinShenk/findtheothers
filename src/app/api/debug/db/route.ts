@@ -1,7 +1,5 @@
 import { NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import { db } from '@/lib/db';
 
 export async function GET() {
   try {
@@ -10,15 +8,15 @@ export async function GET() {
     console.log('DATABASE_URL:', process.env.DATABASE_URL ? 'Set' : 'Not set');
     
     // Try to connect and run a simple query
-    const result = await prisma.$queryRaw`SELECT 1 as test`;
+    const result = await db.$queryRaw`SELECT 1 as test`;
     console.log('Raw query result:', result);
     
     // Try to count causes
-    const causeCount = await prisma.cause.count();
+    const causeCount = await db.cause.count();
     console.log('Cause count:', causeCount);
     
     // Try to get a sample cause
-    const sampleCause = await prisma.cause.findFirst();
+    const sampleCause = await db.cause.findFirst();
     console.log('Sample cause:', sampleCause);
     
     return NextResponse.json({
