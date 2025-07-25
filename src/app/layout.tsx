@@ -8,7 +8,7 @@ import { Footer } from '@/components/layout/footer';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'CollabMap - Discover your community working on humanity\'s most important challenges',
+  title: 'Find the Others - Discover your community working on humanity\'s most important challenges',
   description: 'Stop working in isolation - connect with the community coordinating around problems you actually care about',
   keywords: ['collaboration', 'open source', 'social impact', 'coordination', 'mentorship'],
 };
