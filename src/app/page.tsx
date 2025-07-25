@@ -27,14 +27,14 @@ function HomePageContent() {
   const [linkOpacity, setLinkOpacity] = useState(0.6);
 
   const { data, isLoading } = useVisualizationData({
-        causes: selectedCause ? [selectedCause] : undefined,
+    causes: selectedCause ? [selectedCause] : undefined,
     dimReduction: searchParams.get('dimreduction') as 'pca' | 'trunc' | null || undefined,
   });
 
-  const { data: opportunities } = useCoordinationOpportunities({
-    causes: selectedCause ? [selectedCause] : [],
-    status: 'open',
-  });
+  // const { data: opportunities } = useCoordinationOpportunities({
+  //   causes: selectedCause ? [selectedCause] : [],
+  //   status: 'open',
+  // });
 
   const [hoveredNode, setHoveredNode] = useState<any>(null);
   const [pinnedNodes, setPinnedNodes] = useState<any[]>([]);
@@ -101,7 +101,7 @@ function HomePageContent() {
             onClose={() => handleRemovePinned(node.id)}
           />
         ))}
-        
+
         {/* Hover Preview Panel */}
         {hoveredNode && !pinnedNodes.some(pinned => pinned.id === hoveredNode.id) && (
           <NodeDetailsPanel
@@ -120,12 +120,12 @@ function HomePageContent() {
       </div>
 
       {/* Coordination Panel */}
-      {showCoordinationPanel && (
+      {/* {showCoordinationPanel && (
         <CoordinationPanel
           opportunities={opportunities}
           onClose={() => setShowCoordinationPanel(false)}
         />
-      )}
+      )} */}
     </div>
   );
 }
