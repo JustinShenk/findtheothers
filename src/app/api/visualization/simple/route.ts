@@ -4,8 +4,11 @@ import { PCA } from 'ml-pca';
 
 const prisma = new PrismaClient();
 
-function calculateDotSize({ value, maxSize, scaleFactor }: { value: number; maxSize: number; scaleFactor: number }) {
-  return Math.min(maxSize, 0.3 + Math.log10(value + 1) * scaleFactor);
+function calculateDotSize({
+  value, minSize, maxSize, scaleFactor
+}: { value: number; minSize: number; maxSize: number; scaleFactor: number }) {
+  const size = Math.min(maxSize, minSize + Math.log10(value + 1) * scaleFactor);
+  return size;
 }
 
 export async function GET(request: Request) {
@@ -65,12 +68,12 @@ export async function GET(request: Request) {
     // Convert to react-dot-visualization format
     const data = embeddingData.map((init, index) => {
       const [x, y] = projected.getRow(index);
-      
+
       return {
         id: init.id,
         x: x * 100, // Scale coordinates
         y: y * 100,
-        size: calculateDotSize({ value: init.stars, maxSize: 1.5, scaleFactor: 0.2 }), // Size based on stars
+        size: calculateDotSize({ value: init.stars, minSize: 0.05, maxSize: 1.5, scaleFactor: 0.2 }), // Size based on stars
         color: init.cause?.color || '#6366f1',
         name: init.name,
         description: init.description,
@@ -92,7 +95,7 @@ export async function GET(request: Request) {
 
   } catch (error) {
     console.error('Error creating simple visualization:', error);
-    return NextResponse.json({ 
+    return NextResponse.json({
       error: 'Failed to create visualization',
       data: []
     }, { status: 500 });

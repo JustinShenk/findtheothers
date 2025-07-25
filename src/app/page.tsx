@@ -25,7 +25,6 @@ export default function HomePage() {
   const [linkOpacity, setLinkOpacity] = useState(0.6);
 
   const { data, isLoading } = useVisualizationData({
-    causes: selectedCauses,
     limit: 1000,
   });
 

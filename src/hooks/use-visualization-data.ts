@@ -25,6 +25,7 @@ interface SimpleVisualizationResponse {
 
 interface UseVisualizationDataParams {
   limit?: number;
+  causes?: string[];
 }
 
 export function useVisualizationData(params: UseVisualizationDataParams = {}) {
