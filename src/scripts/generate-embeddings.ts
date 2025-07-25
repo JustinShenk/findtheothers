@@ -1,6 +1,7 @@
 import { PrismaClient } from '@prisma/client';
 import { EmbeddingGenerator } from '@/lib/embeddings/generator';
 import { logger } from '@/lib/utils/logger';
+import { PCA } from 'ml-pca';
 
 const prisma = new PrismaClient();
 const embeddingGenerator = new EmbeddingGenerator();
@@ -123,12 +124,112 @@ async function generateEmbeddings() {
     
     logger.info('✅ All embeddings generated successfully!');
     
+    // Generate PCA components for initiatives
+    logger.info('Starting PCA computation...');
+    await generatePCAComponents();
+    logger.info('✅ PCA computation complete!');
+    
   } catch (error) {
     logger.error('Fatal error during embedding generation:', error);
     throw error;
   } finally {
     await prisma.$disconnect();
   }
+}
+
+async function generatePCAComponents() {
+  try {
+    // Clear existing PCA data
+    await prisma.precomputedPCA.deleteMany({});
+    logger.info('Cleared existing PCA data');
+    
+    // Get all initiatives with embeddings
+    const initiatives = await prisma.initiative.findMany({
+      where: {
+        embeddingJson: {
+          not: null,
+        },
+      },
+      include: {
+        cause: true,
+      },
+    });
+    
+    logger.info(`Found ${initiatives.length} initiatives with embeddings`);
+    
+    // Get all causes
+    const causes = await prisma.cause.findMany();
+    
+    // Process global scope (all initiatives)
+    logger.info('Computing PCA for global scope...');
+    await computePCAForScope(initiatives, null);
+    
+    // Process each cause
+    for (const cause of causes) {
+      const causeInitiatives = initiatives.filter(i => i.causeId === cause.id);
+      if (causeInitiatives.length > 1) { // Need at least 2 initiatives for PCA
+        logger.info(`Computing PCA for cause: ${cause.name} (${causeInitiatives.length} initiatives)`);
+        await computePCAForScope(causeInitiatives, cause.id);
+      } else {
+        logger.info(`Skipping cause ${cause.name}: insufficient initiatives (${causeInitiatives.length})`);
+      }
+    }
+    
+  } catch (error) {
+    logger.error('Error in PCA generation:', error);
+    throw error;
+  }
+}
+
+async function computePCAForScope(initiatives: any[], causeId: string | null) {
+  if (initiatives.length < 2) {
+    logger.warn(`Insufficient initiatives for PCA: ${initiatives.length}`);
+    return;
+  }
+  
+  // Calculate appropriate number of components
+  // Need at least 4x the dimensionality, minimum 2 components
+  const maxComponents = Math.max(2, Math.min(16, Math.floor(initiatives.length / 4)));
+  
+  // Extract embeddings matrix
+  const embeddings = initiatives.map(initiative => 
+    JSON.parse(initiative.embeddingJson)
+  );
+  
+  // Perform PCA
+  const pca = new PCA(embeddings);
+  const components = pca.predict(embeddings, { nComponents: maxComponents });
+  const explainedVariance = pca.getExplainedVariance().slice(0, maxComponents);
+  
+  // Pad components to 16D with zeros if needed
+  const paddedComponents = initiatives.map((initiative, index) => {
+    const rowComponents = Array.from(components.getRow(index));
+    while (rowComponents.length < 16) {
+      rowComponents.push(0);
+    }
+    return rowComponents;
+  });
+  
+  // Pad variance to 16D with zeros if needed
+  const paddedVariance = [...explainedVariance];
+  while (paddedVariance.length < 16) {
+    paddedVariance.push(0);
+  }
+  
+  // Store results for each initiative
+  const pcaRecords = initiatives.map((initiative, index) => ({
+    causeId,
+    initiativeId: initiative.id,
+    components: paddedComponents[index],
+    variance: paddedVariance,
+  }));
+  
+  // Batch insert PCA records
+  await prisma.precomputedPCA.createMany({
+    data: pcaRecords,
+  });
+  
+  logger.info(`Stored PCA components for ${pcaRecords.length} initiatives (${maxComponents}D -> 16D)${causeId ? ` (cause: ${causeId})` : ' (global scope)'}`);
 }
 
 // Run the embedding generator
