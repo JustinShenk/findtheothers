@@ -96,6 +96,7 @@ model Cause {
   coordinationOpportunities CoordinationOpportunity[]
   mentorships            MentorshipRelationship[]
   learningPathways       LearningPathway[]
+  precomputedPCA         PrecomputedPCA[]
   createdAt              DateTime                 @default(now())
   updatedAt              DateTime                 @updatedAt
 }
@@ -142,6 +143,7 @@ model Initiative {
   classification    CauseClassification?
   contributors      InitiativeContributor[]
   coordinationOpportunities CoordinationOpportunity[]
+  precomputedPCA    PrecomputedPCA[]
   creatorId         String?
   creator           Contributor?              @relation("InitiativeCreator", fields: [creatorId], references: [id])
   createdAt         DateTime                  @default(now())
@@ -317,4 +319,19 @@ model ValidationQueue {
   reviewedAt     DateTime?
   
   @@index([status, priority])
+}
+
+model PrecomputedPCA {
+  id           String     @id @default(cuid())
+  causeId      String?    // null for global scope
+  initiativeId String
+  components   Float[]    // 16 PCA components
+  variance     Float[]    // explained variance for components
+  initiative   Initiative @relation(fields: [initiativeId], references: [id])
+  cause        Cause?     @relation(fields: [causeId], references: [id])
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  
+  @@unique([causeId, initiativeId])
+  @@index([causeId])
 }
