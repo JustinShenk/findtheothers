@@ -4,12 +4,41 @@ import { logger } from '@/lib/utils/logger';
 
 const prisma = new PrismaClient();
 
-// Limited set of high-impact search queries
+// Curated climate change queries targeting smaller, active repositories
+// Based on exploration in explorations/optimize-climate-queries/
 const LIMITED_QUERIES = {
   'climate-change': [
-    'climate change stars:>100',
-    'carbon footprint stars:>50',
-    'renewable energy stars:>50',
+    // Core Climate Topics
+    'topic:climate-change stars:10..500 pushed:>2024-07-01',
+    'topic:carbon-footprint stars:10..300 pushed:>2024-07-01',
+    'topic:renewable-energy stars:10..400 pushed:>2024-07-01',
+    'topic:sustainability stars:10..300 pushed:>2024-07-01',
+    
+    // Energy & Power Systems
+    '"solar energy" stars:10..300 pushed:>2024-07-01',
+    '"energy dashboard" OR "sustainability dashboard" stars:5..150 pushed:>2024-07-01',
+    '"electric vehicle" charging OR ev stars:10..300 pushed:>2024-07-01',
+    
+    // Data & Monitoring
+    '"climate visualization" OR "environmental data" stars:10..200 pushed:>2024-07-01',
+    '"air quality" data OR monitoring stars:10..250 pushed:>2024-07-01',
+    '"environmental monitoring" citizen OR community stars:10..150 pushed:>2024-07-01',
+    
+    // Agriculture & Food Systems
+    '"precision agriculture" OR "smart farming" stars:10..250 pushed:>2024-07-01',
+    '"food security" OR "sustainable food" stars:10..200 pushed:>2024-07-01',
+    
+    // Transportation & Mobility
+    '"mobility data" OR "transport emission" stars:5..200 pushed:>2024-07-01',
+    '"bike sharing" OR "micromobility" stars:10..250 pushed:>2024-07-01',
+    
+    // Developer-Focused
+    'language:Python climate OR carbon OR renewable stars:10..200 pushed:>2024-07-01',
+    'language:JavaScript sustainability OR environment stars:10..200 pushed:>2024-07-01',
+    'language:R environmental analysis OR climate stars:5..150 pushed:>2024-07-01',
+    
+    // Specialized Tools
+    '"carbon calculator" OR "emissions tracking" stars:5..200 pushed:>2024-07-01',
   ],
   'ai-safety': [
     'ai safety stars:>50',
