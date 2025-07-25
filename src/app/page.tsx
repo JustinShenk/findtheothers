@@ -6,6 +6,7 @@ import { DotVisualization } from 'react-dot-visualization';
 import { VisualizationControls } from '@/components/visualization/controls';
 import { CauseFilter } from '@/components/shared/cause-filter';
 import { CoordinationPanel } from '@/components/coordination/panel';
+import { NodeDetailsPanel } from '@/components/visualization/node-details-panel';
 import { useVisualizationData } from '@/hooks/use-visualization-data';
 import { useCoordinationOpportunities } from '@/hooks/use-coordination-opportunities';
 import { Settings, X } from 'lucide-react';
@@ -38,8 +39,24 @@ export default function HomePage() {
     // You can add more interaction logic here
   };
 
+  const [hoveredNode, setHoveredNode] = useState<any>(null);
+
   const handleNodeHover = (node: any) => {
-    // Handle node hover
+    // Transform data to match NodeDetailsPanel expectations
+    const transformedNode = node ? {
+      id: node.id,
+      label: node.name,
+      type: 'initiative',
+      color: node.color,
+      data: {
+        description: node.description,
+        stars: node.stars,
+        forks: node.forks,
+        url: node.url,
+        cause: node.cause
+      }
+    } : null;
+    setHoveredNode(transformedNode);
   };
 
   return (
@@ -50,9 +67,16 @@ export default function HomePage() {
           data={data?.data || []}
           onClick={handleNodeClick}
           onHover={handleNodeHover}
+          onLeave={() => setHoveredNode(null)}
           style={{ width: '100%', height: '100%' }}
         />
       </div>
+
+      {/* Node Details Panel for Hover */}
+      <NodeDetailsPanel 
+        node={hoveredNode} 
+        onClose={() => setHoveredNode(null)} 
+      />
 
       {/* Coordination Panel */}
       {showCoordinationPanel && (
