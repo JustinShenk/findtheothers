@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import { DotVisualization } from 'react-dot-visualization';
@@ -12,7 +12,7 @@ import { useVisualizationData } from '@/hooks/use-visualization-data';
 import { useCoordinationOpportunities } from '@/hooks/use-coordination-opportunities';
 import { Settings } from 'lucide-react';
 
-export default function HomePage() {
+function HomePageContent() {
   const searchParams = useSearchParams();
   const [selectedCause, setSelectedCause] = useState<string>('');
   const [viewMode, setViewMode] = useState<'force' | 'pca' | 'clusters'>('pca');
@@ -128,5 +128,15 @@ export default function HomePage() {
         />
       )}
     </div>
+  );
+}
+
+export default function HomePage() {
+  return (
+    <Suspense fallback={<div className="h-screen w-full bg-gradient-to-br from-slate-900 via-gray-900 to-black flex items-center justify-center">
+      <div className="text-white">Loading...</div>
+    </div>}>
+      <HomePageContent />
+    </Suspense>
   );
 }
