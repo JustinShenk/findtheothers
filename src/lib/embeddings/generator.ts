@@ -195,6 +195,16 @@ export class EmbeddingGenerator {
    */
   private async getEmbedding(text: string): Promise<number[]> {
     try {
+      // Log large texts for debugging
+      if (text.length > 6000) {
+        console.log(`\n🚨 LARGE TEXT DETECTED (${text.length} characters):`);
+        console.log('='.repeat(80));
+        console.log(text);
+        console.log('='.repeat(80));
+        console.log(`Estimated tokens: ~${Math.ceil(text.length / 4)}`);
+        console.log('');
+      }
+
       const response = await openai.embeddings.create({
         model: this.model,
         input: text,
@@ -204,6 +214,9 @@ export class EmbeddingGenerator {
       return response.data[0].embedding;
     } catch (error) {
       console.error('Error generating embedding:', error);
+      console.error(`Text length was: ${text.length} characters`);
+      console.error('Full text that caused error:');
+      console.error(text);
       // Return a zero vector as fallback
       return new Array(this.dimensions).fill(0);
     }
