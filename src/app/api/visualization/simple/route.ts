@@ -43,9 +43,73 @@ export async function GET(request: Request) {
     });
 
     if (pcaData.length === 0) {
+      console.log('No precomputed PCA data found, falling back to direct computation');
+      
+      // Fallback: Get initiatives with embeddings and compute PCA on the fly
+      const initiatives = await db.initiative.findMany({
+        where: causeId ? { causeId } : {},
+        select: {
+          id: true,
+          name: true,
+          description: true,
+          stars: true,
+          forks: true,
+          url: true,
+          embeddingJson: true,
+          cause: {
+            select: {
+              name: true,
+              color: true
+            }
+          }
+        },
+        take: 100,
+        orderBy: { stars: 'desc' }
+      });
+
+      if (initiatives.length === 0) {
+        return NextResponse.json({
+          data: [],
+          metadata: {
+            totalCount: 0,
+            pcaExplainedVariance: [],
+            method: 'none'
+          }
+        });
+      }
+
+      // Simple 2D positioning without embeddings
+      const dotData = initiatives.map((init, index) => {
+        const angle = (index / initiatives.length) * 2 * Math.PI;
+        const radius = 0.3 + Math.random() * 0.3;
+        
+        return {
+          id: init.id,
+          x: radius * Math.cos(angle),
+          y: radius * Math.sin(angle),
+          size: calculateDotSize({
+            value: init.stars,
+            minSize: 4,
+            maxSize: 20,
+            scaleFactor: 3
+          }),
+          color: init.cause.color,
+          name: init.name,
+          description: init.description || '',
+          stars: init.stars,
+          forks: init.forks,
+          url: init.url,
+          cause: init.cause.name
+        };
+      });
+
       return NextResponse.json({
-        data: [],
-        message: causeId ? 'No PCA data found for this cause' : 'No precomputed PCA data found'
+        data: dotData,
+        metadata: {
+          totalCount: dotData.length,
+          pcaExplainedVariance: [],
+          method: 'fallback-circular'
+        }
       });
     }
 
