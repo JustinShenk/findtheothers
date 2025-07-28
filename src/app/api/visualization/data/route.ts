@@ -1,19 +1,47 @@
 import { NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
+import { db } from '@/lib/db';
 import { kmeans } from 'ml-kmeans';
-
-const prisma = new PrismaClient();
+import { cache, createCacheKey } from '@/lib/cache';
+import { visualizationSchema, validateSearchParams } from '@/lib/validation';
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
-  const causeFilter = searchParams.get('causes')?.split(',').filter(Boolean) || [];
-  const limit = parseInt(searchParams.get('limit') || '1000');
-  const useAutoDiscovery = searchParams.get('auto') !== 'false'; // Default to auto-discovery
+  
+  // Validate parameters
+  const { data: params, error } = validateSearchParams(
+    searchParams,
+    visualizationSchema
+  );
+
+  if (error) {
+    return NextResponse.json(
+      { error: `Invalid parameters: ${error}` },
+      { status: 400 }
+    );
+  }
+
+  const { causes: causeFilter, limit, auto: useAutoDiscovery } = params!;
+
+  // Create cache key based on request parameters
+  const cacheKey = createCacheKey('visualization', {
+    causes: causeFilter.join(','),
+    limit,
+    auto: useAutoDiscovery
+  });
+
+  // Check cache first
+  const cachedData = cache.get(cacheKey);
+  if (cachedData) {
+    return NextResponse.json(cachedData);
+  }
 
   try {
     // Use automatic cause discovery by default
     if (useAutoDiscovery && causeFilter.length === 0) {
-      return await getAutoDiscoveredVisualization(limit);
+      const result = await getAutoDiscoveredVisualization(limit);
+      const data = await result.json();
+      cache.set(cacheKey, data, 300); // Cache for 5 minutes
+      return NextResponse.json(data);
     }
     
     // Fallback to original predefined causes logic for specific filters
@@ -33,7 +61,7 @@ export async function GET(request: Request) {
       
       const causeNames = causeFilter.map(id => causeNameMap[id]).filter(Boolean);
       
-      causesData = await prisma.cause.findMany({
+      causesData = await db.cause.findMany({
         where: { 
           name: { in: causeNames }
         },
@@ -54,7 +82,7 @@ export async function GET(request: Request) {
       console.log(`Filtering by causes: ${causeNames.join(', ')}, found ${causesData.length} causes`);
     } else {
       // Get all causes if none selected
-      causesData = await prisma.cause.findMany({
+      causesData = await db.cause.findMany({
         take: 6, // Limit to top causes
         include: {
           initiatives: {
@@ -203,11 +231,16 @@ export async function GET(request: Request) {
       contributors: nodes.filter(n => n.type === 'contributor').length,
     };
 
-    return NextResponse.json({
+    const responseData = {
       nodes: nodes.slice(0, limit),
       edges: edges.slice(0, limit * 2),
       metrics,
-    });
+    };
+
+    // Cache the result
+    cache.set(cacheKey, responseData, 300); // Cache for 5 minutes
+
+    return NextResponse.json(responseData);
 
   } catch (error) {
     console.error('Error fetching visualization data:', error);
@@ -222,7 +255,7 @@ async function getAutoDiscoveredVisualization(limit: number) {
   console.log('🔍 Using automatic cause discovery for visualization...');
   
   // Get initiatives with embeddings
-  const initiatives = await prisma.initiative.findMany({
+  const initiatives = await db.initiative.findMany({
     where: {
       embeddingJson: { not: null }
     },

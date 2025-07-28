@@ -75,6 +75,10 @@ model Contributor {
   createdAt             DateTime                  @default(now())
   updatedAt             DateTime                  @updatedAt
   lastActiveAt          DateTime                  @default(now())
+  
+  @@index([lastActiveAt(sort: Desc)])
+  @@index([githubUsername])
+  @@index([name])
 }
 
 model Cause {
@@ -99,6 +103,10 @@ model Cause {
   precomputedPCA         PrecomputedPCA[]
   createdAt              DateTime                 @default(now())
   updatedAt              DateTime                 @updatedAt
+  
+  @@index([impactScore(sort: Desc)])
+  @@index([slug])
+  @@index([name])
 }
 
 model ContributorCause {
@@ -152,6 +160,10 @@ model Initiative {
   
   @@unique([platform, externalId])
   @@index([causeId])
+  @@index([stars(sort: Desc)])
+  @@index([lastActivityAt(sort: Desc)])
+  @@index([causeId, stars(sort: Desc)])
+  @@index([name])
 }
 
 model InitiativeContributor {
@@ -200,6 +212,8 @@ model CoordinationOpportunity {
   outcomes        CoordinationOutcome[]
   createdAt       DateTime                  @default(now())
   updatedAt       DateTime                  @updatedAt
+  
+  @@index([status, causeId])
 }
 
 model CoordinationParticipant {

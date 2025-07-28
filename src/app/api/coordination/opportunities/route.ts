@@ -1,7 +1,5 @@
 import { NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import { db } from '@/lib/db';
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -11,7 +9,7 @@ export async function GET(request: Request) {
   const limit = parseInt(searchParams.get('limit') || '10');
 
   try {
-    const opportunities = await prisma.coordinationOpportunity.findMany({
+    const opportunities = await db.coordinationOpportunity.findMany({
       where: {
         status,
         ...(type && { type }),

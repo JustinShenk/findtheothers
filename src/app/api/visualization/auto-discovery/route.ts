@@ -1,8 +1,6 @@
 import { NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
+import { db } from '@/lib/db';
 import { kmeans } from 'ml-kmeans';
-
-const prisma = new PrismaClient();
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -13,7 +11,7 @@ export async function GET(request: Request) {
     console.log('🔍 Starting automatic cause discovery...');
     
     // Get all initiatives with embeddings and metadata
-    const initiatives = await prisma.initiative.findMany({
+    const initiatives = await db.initiative.findMany({
       where: {
         embeddingJson: { not: null }
       },

@@ -1,15 +1,27 @@
 import { NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import { db } from '@/lib/db';
+import { initiativesSchema, validateSearchParams } from '@/lib/validation';
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
-  const limit = parseInt(searchParams.get('limit') || '50');
-  const causeId = searchParams.get('causeId');
+  
+  // Validate parameters
+  const { data: params, error } = validateSearchParams(
+    searchParams,
+    initiativesSchema
+  );
+
+  if (error) {
+    return NextResponse.json(
+      { error: `Invalid parameters: ${error}` },
+      { status: 400 }
+    );
+  }
+
+  const { limit, causeId } = params!;
 
   try {
-    const initiatives = await prisma.initiative.findMany({
+    const initiatives = await db.initiative.findMany({
       where: causeId ? { causeId } : {},
       include: {
         cause: {
